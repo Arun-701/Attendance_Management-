@@ -1,109 +1,158 @@
-import java.util.ArrayList;
-import java.util.Scanner;
+import java.io.*;
+import java.util.*;
+class Main {
 
-class Student {
-    String studentId;
-    String studentName;
-    ArrayList<String> attendanceDates;
-
-    public Student(String studentId, String studentName) {
-        this.studentId = studentId;
-        this.studentName = studentName;
-        this.attendanceDates = new ArrayList<>();
-    }
-
-    public void markAttendance(String date) {
-        attendanceDates.add(date);
-    }
-
-    public void displayAttendance() {
-        System.out.println("Attendance for " + studentName + " (ID: " + studentId + "):");
-        for (String date : attendanceDates) {
-            System.out.println(" - " + date);
-        }
-    }
-}
-
-class AttendanceManager {
-    ArrayList<Student> students;
-
-    public AttendanceManager() {
-        students = new ArrayList<>();
-    }
-
-    public void addStudent(String id, String name) {
-        students.add(new Student(id, name));
-        System.out.println("Student added successfully.");
-    }
-
-    public void markAttendance(String id, String date) {
-        for (Student s : students) {
-            if (s.studentId.equals(id)) {
-                s.markAttendance(date);
-                System.out.println("Attendance marked.");
-                return;
-            }
-        }
-        System.out.println("Student ID not found.");
-    }
-
-    public void viewAttendance(String id) {
-        for (Student s : students) {
-            if (s.studentId.equals(id)) {
-                s.displayAttendance();
-                return;
-            }
-        }
-        System.out.println("Student ID not found.");
-    }
-}
-
-public class AttendanceManagement {
+    private static final String FILE_NAME = "attendance_records.txt";
     public static void main(String[] args) {
-        Scanner sc = new Scanner(System.in);
-        AttendanceManager manager = new AttendanceManager();
-
+        List<String[]> attendanceList = new ArrayList<>(); 
+        Scanner scanner = new Scanner(System.in);
+        
         while (true) {
-            System.out.println("\n--- Attendance Management System ---");
-            System.out.println("1. Add Student");
-            System.out.println("2. Mark Attendance");
-            System.out.println("3. View Attendance");
-            System.out.println("4. Exit");
-            System.out.print("Enter choice: ");
-
-            int choice = sc.nextInt();
-            sc.nextLine();
+            System.out.println("\nAttendance Management System");
+            System.out.println("1. Mark Attendance");
+            System.out.println("2. View Attendance");
+            System.out.println("3. Update Attendance");
+            System.out.println("4. Delete Attendance");
+            System.out.println("5. Exit");
+            System.out.print("Enter your choice: ");
+            int choice = getValidInteger(scanner);
 
             switch (choice) {
                 case 1:
-                    System.out.print("Enter student ID: ");
-                    String id = sc.nextLine();
-                    System.out.print("Enter student name: ");
-                    String name = sc.nextLine();
-                    manager.addStudent(id, name);
+                    markAttendance(attendanceList, scanner);
+                    saveToFile(attendanceList);
                     break;
-
                 case 2:
-                    System.out.print("Enter student ID: ");
-                    id = sc.nextLine();
-                    System.out.print("Enter date (YYYY-MM-DD): ");
-                    String date = sc.nextLine();
-                    manager.markAttendance(id, date);
+                    viewAttendance(attendanceList);
                     break;
-
                 case 3:
-                    System.out.print("Enter student ID to view attendance: ");
-                    id = sc.nextLine();
-                    manager.viewAttendance(id);
+                    updateAttendance(attendanceList, scanner);
+                    saveToFile(attendanceList);
                     break;
-
                 case 4:
-                    System.out.println("Exiting system...");
-                    sc.close();
+                    deleteAttendance(attendanceList, scanner);
+                    saveToFile(attendanceList);
+                    break;
+                case 5:
+                    System.out.println("Exiting program...");
+                    scanner.close();
                     return;
-
                 default:
-                    System.out.println("Invalid choice. Try again.");
+                    System.out.println("Invalid choice! Please enter a valid option.");
+            }
+        }
+    }
+
+    private static void markAttendance(List<String[]> attendanceList, Scanner scanner) {
+        String studentId = getNonEmptyInput(scanner, "Enter Student ID: ");
+        String name = getNonEmptyInput(scanner, "Enter Name: ");
+        String date = getValidDate(scanner, "Enter Date (YYYY-MM-DD): ");
+        String status = getValidAttendanceStatus(scanner, "Enter Attendance Status (Present/Absent): ");
+
+        attendanceList.add(new String[] { studentId, name.toUpperCase(), date, status.toUpperCase()	 });
+        System.out.println("Attendance marked successfully!");
+    }
+
+    private static void viewAttendance(List<String[]> attendanceList) {
+        if (attendanceList.isEmpty()) {
+            System.out.println("No attendance records available.");
+        } else {
+            System.out.println("\nAttendance Records:");
+            for (String[] record : attendanceList) {
+                System.out.println("Student ID: " + record[0] + ", Name: " + record[1] + ", Date: " + record[2] + ", Status: " + record[3]);
+            }
+        }
+    }
+
+    private static void updateAttendance(List<String[]> attendanceList, Scanner scanner) {
+        String studentId = getNonEmptyInput(scanner, "Enter Student ID: ");
+        String date = getValidDate(scanner, "Enter Date (YYYY-MM-DD): ");
+        String status = getValidAttendanceStatus(scanner, "Enter New Attendance Status (Present/Absent): ");
+        boolean updated = false;
+        for (String[] record : attendanceList) {
+            if (record[0].equals(studentId) && record[2].equals(date)) {
+                record[3] = status.toUpperCase();
+                updated = true;
+                System.out.println("Attendance updated successfully!");
+                break;
+            }
+        }
+        if (!updated) {
+            System.out.println("Attendance record not found.");
+        }
+    }
+
+    private static void deleteAttendance(List<String[]> attendanceList, Scanner scanner) {
+        String studentId = getNonEmptyInput(scanner, "Enter Student ID: ");
+        String date = getValidDate(scanner, "Enter Date (YYYY-MM-DD): ");
+        boolean found = false;
+        for (int i = 0; i < attendanceList.size(); i++) {
+            String[] record = attendanceList.get(i);
+            if (record[0].equals(studentId) && record[2].equals(date)) {
+                attendanceList.remove(i); 
+                found = true;
+                System.out.println("Attendance record deleted.");
+                break;
+            }
+        }
+        if (!found) {
+            System.out.println("Attendance record not found.");
+        }
+    }
+
+    private static void saveToFile(List<String[]> attendanceList) {
+        try (FileWriter writer = new FileWriter(FILE_NAME)) {
+            for (String[] record : attendanceList) {
+                writer.write(String.join(", ", record) + "\n");
+            }
+            System.out.println("Data saved to file successfully.");
+        } catch (IOException e) {
+            System.out.println("Error saving to file: " + e.getMessage());
+        }
+    }
+
+    private static int getValidInteger(Scanner scanner) {
+        while (true) {
+            try {
+                return Integer.parseInt(scanner.nextLine());
+            } catch (NumberFormatException e) {
+                System.out.print("Invalid input! Please enter a number: ");
+            }
+        }
+    }
+
+    private static String getNonEmptyInput(Scanner scanner, String prompt) {
+        while (true) {
+            System.out.print(prompt);
+            String input = scanner.nextLine().trim();
+            if (!input.isEmpty()) {
+                return input;
+            } else {
+                System.out.println("Input cannot be empty!");
+            }
+        }
+    }
+
+    private static String getValidDate(Scanner scanner, String prompt) {
+        while (true) {
+            System.out.print(prompt);
+            String input = scanner.nextLine().trim();
+            if (input.matches("\\d{4}-\\d{2}-\\d{2}")) { 
+                return input;
+            } else {
+                System.out.println("Invalid date format! Please enter a date in the format YYYY-MM-DD.");
+            }
+        }
+    }
+
+    private static String getValidAttendanceStatus(Scanner scanner, String prompt) {
+        while (true) {
+            System.out.print(prompt);
+            String input = scanner.nextLine().trim();
+            if (input.equalsIgnoreCase("Present") || input.equalsIgnoreCase("Absent")) {
+                return input;
+            } else {
+                System.out.println("Invalid status! Please enter 'Present' or 'Absent'.");
             }
         }
     }
